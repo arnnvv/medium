@@ -1,0 +1,4 @@
+```
+bun i
+bun dev
+```

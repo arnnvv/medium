@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy --minify src/index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "5.10.2",
+    "@prisma/extension-accelerate": "latest",
+    "hono": "^4.0.7",
+    "prisma": "latest",
+    "valibot": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "wrangler": "latest"
+  }
+}
