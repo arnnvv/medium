@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LabelledInput } from "../components/LabeletInputs";
 import { Button } from "../components/Button";
-const BACKEND_URL = process.env.BACKENDURL;
+const BACKEND_URL = process.env.BACKEND_URL;
 
 export default function Signup() {
   const [username, setUsername] = useState("");

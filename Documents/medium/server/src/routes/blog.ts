@@ -15,7 +15,7 @@ const blog = new Hono<{
 }>();
 
 blog.use(async (c, next) => {
-  const header = c.req.header("Authorization");
+  const header = c.req.header("authorization");
   if (!header) {
     c.status(401);
     return c.json({ error: "Token Missing" });
