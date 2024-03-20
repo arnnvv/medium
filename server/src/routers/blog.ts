@@ -14,63 +14,6 @@ const blog = new Hono<{
   };
 }>();
 
-blog
-  .use(authenticate)
-  .post(`/`, async (c: Context) => {
-    const userId = c.get(`userId`);
-    const prisma = new PrismaClient({
-      datasourceUrl: c.env?.DATABASE_URL,
-    }).$extends(withAccelerate());
-
-    try {
-      const body = await c.req.json();
-      if (!validatePost(body)) {
-        c.status(411);
-        return c.json({ error: `Invalid post` });
-      }
-      const post = await prisma.post.create({
-        data: {
-          title: body.title,
-          content: body.content,
-          authorId: userId,
-        },
-      });
-      return c.json({ id: post.id });
-    } catch (error) {
-      return c.json({ error: `Error creating post: ${error}` });
-    }
-  })
-  .put(async (c: Context) => {
-    const userId = c.get(`userId`);
-    const prisma = new PrismaClient({
-      datasourceUrl: c.env?.DATABASE_URL,
-    }).$extends(withAccelerate());
-
-    try {
-      const body = await c.req.json();
-      if (!validateUpdatePost(body)) {
-        c.status(411);
-        return c.json({
-          message: "Inputs not correct",
-        });
-      }
-
-      await prisma.post.update({
-        where: {
-          id: body.id,
-          authorId: userId,
-        },
-        data: {
-          title: body.title,
-          content: body.content,
-        },
-      });
-      return c.json({ message: "updated" });
-    } catch (error) {
-      return c.json({ error: `Error changing post: ${error}` });
-    }
-  });
-
 blog.get("/bulk", async (c: Context) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env?.DATABASE_URL,
@@ -113,6 +56,74 @@ blog.get("/bulk", async (c: Context) => {
   }
 });
 
+blog.get("/user-posts", authenticate, async (c: Context) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  try {
+    const posts = await prisma.post.findMany({
+      where: {
+        authorId: c.get("userId"),
+      },
+    });
+    return c.json({ posts });
+  } catch (error) {
+    c.status(500);
+    return c.json({ error: `Error while fetching blog post: ${error}` });
+  }
+});
+
+blog.post(`/create-post`, authenticate, async (c: Context) => {
+  const userId = c.get(`userId`);
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  try {
+    const body: {
+      title: string;
+      content: string;
+      tags: string;
+    } = await c.req.json();
+
+    const tagNames = body.tags.split(",").map((tag) => tag.trim());
+
+    if (!validatePost(body)) {
+      c.status(411);
+      return c.json({ error: `Invalid post` });
+    }
+    const post = await prisma.post.create({
+      data: {
+        title: body.title,
+        content: body.content,
+        authorId: userId,
+        tags: {
+          connectOrCreate: tagNames.map((tag) => ({
+            where: { tag },
+            create: { tag },
+          })),
+        },
+      },
+      include: {
+        tags: true,
+      },
+    });
+    return c.json({
+      message: "Post created",
+      post: {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        tags: post.tags.map((tag) => tag.tag),
+        createdAt: post.createdAt,
+      },
+    });
+  } catch (error) {
+    return c.json({ error: `Error creating post: ${error}` });
+  }
+});
+
 blog
   .route("/:id")
   .use(authenticate)
@@ -125,6 +136,10 @@ blog
       const post = await prisma.post.findFirst({
         where: {
           id,
+          authorId: c.get("userId"),
+        },
+        include: {
+          tags: true,
         },
         select: {
           id: true,
@@ -137,7 +152,16 @@ blog
           },
         },
       });
-      return c.json({ post });
+      if (!post) return c.json({ message: "Post does not exist" });
+      return c.json({
+        post: {
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          tags: post.tags,
+          createdAt: post.createdAt,
+        },
+      });
     } catch (error) {
       c.status(411);
       return c.json({
@@ -145,6 +169,93 @@ blog
       });
     }
   })
-  .put(async (c: Context) => {})
-  .delete(async (c: Context) => {});
+  .put(async (c: Context) => {
+    const id = c.req.param("id");
+    const prisma = new PrismaClient({
+      datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+    try {
+      const body: {
+        title: string;
+        content: string;
+        tags: string;
+      } = await c.req.json();
+
+      if (!validateUpdatePost(body)) {
+        c.status(411);
+        return c.json({ error: `Invalid post` });
+      }
+
+      const tagNames = body.tags.split(",").map((tag) => tag.trim());
+
+      const postExist = await prisma.post.findFirst({
+        where: {
+          id: id,
+          authorId: c.get("userId"),
+        },
+      });
+      if (!postExist) return c.json({ message: "Post not found" });
+      const post = await prisma.post.update({
+        where: {
+          id: id,
+          authorId: c.get("userId"),
+        },
+        data: {
+          content: body.content,
+          title: body.title,
+          tags: {
+            connectOrCreate: tagNames.map((tag) => ({
+              where: { tag },
+              create: { tag },
+            })),
+          },
+        },
+        include: {
+          tags: true,
+        },
+      });
+      return c.json({
+        data: {
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          tags: post.tags,
+          createdAt: post.createdAt,
+        },
+      });
+    } catch (error) {
+      c.status(500);
+      return c.json({ message: `Error while updating blog post: ${error}` });
+    }
+  })
+  .delete(async (c: Context) => {
+    const id = c.req.param("id");
+    const prisma = new PrismaClient({
+      datasourceUrl: c.env?.DATABASE_URL,
+    }).$extends(withAccelerate());
+    try {
+      const postExist = await prisma.post.findFirst({
+        where: {
+          id: id,
+          authorId: c.get("userId"),
+        },
+      });
+      if (!postExist) {
+        return c.json({ message: "Post not found" });
+      }
+      await prisma.post.delete({
+        where: {
+          id: id,
+          authorId: c.get("userId"),
+        },
+      });
+      return c.json({
+        message: "post deleted",
+      });
+    } catch (error) {
+      c.status(500);
+      return c.json({ message: `Error while deleting blog post: ${error}` });
+    }
+  });
+
 export default blog;

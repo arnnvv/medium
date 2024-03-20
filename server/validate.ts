@@ -16,8 +16,8 @@ const postInput = object({
 export type PostInput = Output<typeof postInput>;
 
 const updatePostInput = object({
-  email: optional(string()),
-  password: optional(string()),
+  title: optional(string()),
+  content: optional(string()),
 });
 
 export type UpdatePostInput = Output<typeof updatePostInput>;
