@@ -28,4 +28,12 @@ model Post {
   published Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
+  tags      Tags[]
+  createdAt DateTime @default(now())
 }
+
+model Tags {
+    id        String   @id @default(uuid())
+    tag       String   @unique
+    posts     Post[]
+  }

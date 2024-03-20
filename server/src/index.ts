@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-import user from "./routes/user";
-import blog from "./routes/blog";
+import user from "./routers/user";
+import blog from "./routers/blog";
+import { tag } from "./routers/tag";
 
 const app = new Hono<{
   Bindings: {
@@ -18,5 +19,5 @@ app.get(`/`, (c) => {
 
 app.route("/api/v1/user", user);
 app.route("/api/v1/blog", blog);
-
+app.route("api/v1/tag", tag);
 export default app;
