@@ -49,7 +49,7 @@ user.post(`/signup`, async (c: Context) => {
     });
   } catch (e) {
     c.status(403);
-    return c.json({ message: `Error while signing up` });
+    return c.json({ error: `Error while signing up` });
   }
 });
 

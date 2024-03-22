@@ -51,7 +51,7 @@ blog.get("/bulk", async (c: Context) => {
   } catch (error) {
     c.status(411);
     return c.json({
-      message: `Error while fetching blog post: ${error}`,
+      error: `Error while fetching blog post: ${error}`,
     });
   }
 });
@@ -152,7 +152,7 @@ blog
           },
         },
       });
-      if (!post) return c.json({ message: "Post does not exist" });
+      if (!post) return c.json({ error: "Post does not exist" });
       return c.json({
         post: {
           id: post.id,
@@ -165,7 +165,7 @@ blog
     } catch (error) {
       c.status(411);
       return c.json({
-        message: "Error while fetching blog post",
+        error: "Error while fetching blog post",
       });
     }
   })
@@ -225,7 +225,7 @@ blog
       });
     } catch (error) {
       c.status(500);
-      return c.json({ message: `Error while updating blog post: ${error}` });
+      return c.json({ error: `Error while updating blog post: ${error}` });
     }
   })
   .delete(async (c: Context) => {
@@ -241,7 +241,7 @@ blog
         },
       });
       if (!postExist) {
-        return c.json({ message: "Post not found" });
+        return c.json({ error: "Post not found" });
       }
       await prisma.post.delete({
         where: {
@@ -254,7 +254,7 @@ blog
       });
     } catch (error) {
       c.status(500);
-      return c.json({ message: `Error while deleting blog post: ${error}` });
+      return c.json({ error: `Error while deleting blog post: ${error}` });
     }
   });
 

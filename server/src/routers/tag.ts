@@ -45,7 +45,7 @@ tag.get("/getPosts/:tag", async (c: Context) => {
     });
   } catch (e) {
     c.status(500);
-    return c.json({ message: "Internal Server Error" });
+    return c.json({ error: "Internal Server Error" });
   }
 });
 
@@ -61,6 +61,6 @@ tag.get("/tags", async (c: Context) => {
     });
   } catch (e) {
     c.status(500);
-    return c.json({ message: "Tags Not found" });
+    return c.json({ error: "Tags Not found" });
   }
 });
